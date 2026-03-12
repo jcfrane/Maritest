@@ -1,5 +1,7 @@
 <?php
 
+use App\Actions\Tenancy\ResolveTenantRedirect;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
@@ -79,4 +81,44 @@ test('users are rate limited', function () {
     ]);
 
     $response->assertTooManyRequests();
+});
+
+test('tenant users are redirected to the remembered tenant dashboard after login', function () {
+    $firstTenant = Tenant::factory()->create();
+    $rememberedTenant = Tenant::factory()->create();
+    $user = User::factory()->create();
+
+    $firstTenant->users()->attach($user);
+    $rememberedTenant->users()->attach($user);
+
+    $response = $this
+        ->withSession([ResolveTenantRedirect::SESSION_KEY => $rememberedTenant->slug])
+        ->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+    $this->assertAuthenticated();
+    $response->assertRedirect(route('tenant.dashboard', ['tenant' => $rememberedTenant], absolute: false));
+});
+
+test('tenant login falls back to the first active attached tenant when the remembered tenant is stale', function () {
+    $fallbackTenant = Tenant::factory()->create();
+    $secondTenant = Tenant::factory()->create();
+    $inactiveTenant = Tenant::factory()->inactive()->create();
+    $user = User::factory()->create();
+
+    $fallbackTenant->users()->attach($user);
+    $secondTenant->users()->attach($user);
+    $inactiveTenant->users()->attach($user);
+
+    $response = $this
+        ->withSession([ResolveTenantRedirect::SESSION_KEY => $inactiveTenant->slug])
+        ->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+    $this->assertAuthenticated();
+    $response->assertRedirect(route('tenant.dashboard', ['tenant' => $fallbackTenant], absolute: false));
 });

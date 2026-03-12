@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import AppearanceTabs from '@/components/AppearanceTabs.vue';
-import Heading from '@/components/Heading.vue';
+import PagePanel from '@/components/page/PagePanel.vue';
+import PageShell from '@/components/page/PageShell.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { edit } from '@/routes/appearance';
@@ -19,17 +20,29 @@ const breadcrumbItems: BreadcrumbItem[] = [
     <AppLayout :breadcrumbs="breadcrumbItems">
         <Head title="Appearance settings" />
 
-        <h1 class="sr-only">Appearance settings</h1>
+        <PageShell
+            title="Appearance settings"
+            description="Choose how the interface should look during daily work."
+            content-class="gap-6"
+        >
+            <SettingsLayout>
+                <PagePanel body-class="p-6">
+                    <template #header>
+                        <div class="space-y-1">
+                            <h2
+                                class="text-lg font-semibold tracking-tight text-foreground"
+                            >
+                                Theme preference
+                            </h2>
+                            <p class="text-sm text-muted-foreground">
+                                Update your account's appearance settings.
+                            </p>
+                        </div>
+                    </template>
 
-        <SettingsLayout>
-            <div class="space-y-6">
-                <Heading
-                    variant="small"
-                    title="Appearance settings"
-                    description="Update your account's appearance settings"
-                />
-                <AppearanceTabs />
-            </div>
-        </SettingsLayout>
+                    <AppearanceTabs />
+                </PagePanel>
+            </SettingsLayout>
+        </PageShell>
     </AppLayout>
 </template>

@@ -2,15 +2,18 @@
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Inertia\Testing\AssertableInertia as Assert;
 
 test('password update page is displayed', function () {
     $user = User::factory()->create();
 
-    $response = $this
-        ->actingAs($user)
-        ->get(route('user-password.edit'));
-
-    $response->assertOk();
+    $this->actingAs($user)
+        ->get(route('user-password.edit'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/Password')
+            ->where('auth.user.email', $user->email)
+        );
 });
 
 test('password can be updated', function () {

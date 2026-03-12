@@ -1,15 +1,19 @@
 <?php
 
+use App\Models\Tenant;
 use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
 
 test('profile page is displayed', function () {
     $user = User::factory()->create();
 
-    $response = $this
-        ->actingAs($user)
-        ->get(route('profile.edit'));
-
-    $response->assertOk();
+    $this->actingAs($user)
+        ->get(route('profile.edit'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/Profile')
+            ->where('auth.user.email', $user->email)
+        );
 });
 
 test('profile information can be updated', function () {
@@ -82,4 +86,14 @@ test('correct password must be provided to delete account', function () {
         ->assertRedirect(route('profile.edit'));
 
     expect($user->fresh())->not->toBeNull();
+});
+
+test('tenant users are redirected from profile settings to their tenant dashboard', function () {
+    $tenant = Tenant::factory()->create();
+    $user = User::factory()->create();
+    $tenant->users()->attach($user);
+
+    $this->actingAs($user)
+        ->get(route('profile.edit'))
+        ->assertRedirect(route('tenant.dashboard', ['tenant' => $tenant], absolute: false));
 });

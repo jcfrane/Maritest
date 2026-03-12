@@ -1,4 +1,4 @@
-import type { Auth } from '@/types/auth';
+import type { Auth, Tenant } from '@/types/auth';
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
@@ -19,6 +19,9 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            currentTenant: Tenant | null;
+            permissions: string[];
+            roles: string[];
             [key: string]: unknown;
         };
     }

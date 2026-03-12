@@ -2,22 +2,43 @@
 
 namespace Database\Seeders;
 
+use App\Models\Tenant;
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->call(RoleAndPermissionSeeder::class);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Create landlord user
+        $landlord = User::factory()->landlord()->create([
+            'name' => 'Landlord Admin',
+            'email' => 'admin@maritest.com',
         ]);
+        $landlord->assignRole('landlord');
+
+        // Create a sample tenant
+        $tenant = Tenant::factory()->create([
+            'name' => 'Proact',
+            'slug' => 'proact',
+        ]);
+
+        // Create tenant admin
+        $tenantAdmin = User::factory()->create([
+            'name' => 'JC Frane',
+            'email' => 'admin@proact.com',
+        ]);
+        $tenantAdmin->assignRole('tenant-admin');
+        $tenant->users()->attach($tenantAdmin);
+
+        // Create a candidate
+        $candidate = User::factory()->create([
+            'name' => 'John Student',
+            'email' => 'student@example.com',
+        ]);
+        $candidate->assignRole('candidate');
+        $tenant->users()->attach($candidate);
     }
 }
