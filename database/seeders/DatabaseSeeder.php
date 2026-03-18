@@ -40,5 +40,7 @@ class DatabaseSeeder extends Seeder
         ]);
         $candidate->assignRole('candidate');
         $tenant->users()->attach($candidate);
+
+        $this->call(QuestionnaireSeeder::class);
     }
 }

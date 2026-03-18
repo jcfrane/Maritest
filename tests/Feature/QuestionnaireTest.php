@@ -114,7 +114,7 @@ test('landlord can store a questionnaire with pages and items', function () {
         'title' => 'Sample Exam',
         'description' => 'A test exam',
         'status' => 'draft',
-        'settings' => ['time_limit' => 60],
+        'settings' => ['time_limit' => 60, 'presentation_mode' => 'per_page'],
         'pages' => [
             [
                 'title' => 'Page 1',
@@ -243,6 +243,64 @@ test('landlord can view edit questionnaire page', function () {
                 '<p>4</p>',
             )
         );
+});
+
+// ── Validation Tests ────────────────────────────────────────────────
+
+test('presentation_mode only accepts per_page and per_item', function () {
+    [$user, $tenant] = createLandlordWithTenant();
+
+    $this->actingAs($user)
+        ->post(route('tenant.questionnaires.store', $tenant), [
+            'title' => 'Validation Test',
+            'settings' => ['presentation_mode' => 'invalid'],
+            'pages' => [],
+        ])
+        ->assertSessionHasErrors('settings.presentation_mode');
+
+    $this->actingAs($user)
+        ->post(route('tenant.questionnaires.store', $tenant), [
+            'title' => 'Validation Test',
+            'settings' => ['presentation_mode' => 'per_page'],
+            'pages' => [],
+        ])
+        ->assertSessionDoesntHaveErrors('settings.presentation_mode');
+
+    $this->actingAs($user)
+        ->post(route('tenant.questionnaires.store', $tenant), [
+            'title' => 'Validation Test',
+            'settings' => ['presentation_mode' => 'per_item'],
+            'pages' => [],
+        ])
+        ->assertSessionDoesntHaveErrors('settings.presentation_mode');
+});
+
+test('items_per_step is nullable and must be at least 1 when provided', function () {
+    [$user, $tenant] = createLandlordWithTenant();
+
+    $this->actingAs($user)
+        ->post(route('tenant.questionnaires.store', $tenant), [
+            'title' => 'Validation Test',
+            'settings' => ['items_per_step' => null],
+            'pages' => [],
+        ])
+        ->assertSessionDoesntHaveErrors('settings.items_per_step');
+
+    $this->actingAs($user)
+        ->post(route('tenant.questionnaires.store', $tenant), [
+            'title' => 'Validation Test',
+            'settings' => ['items_per_step' => 0],
+            'pages' => [],
+        ])
+        ->assertSessionHasErrors('settings.items_per_step');
+
+    $this->actingAs($user)
+        ->post(route('tenant.questionnaires.store', $tenant), [
+            'title' => 'Validation Test',
+            'settings' => ['items_per_step' => 1],
+            'pages' => [],
+        ])
+        ->assertSessionDoesntHaveErrors('settings.items_per_step');
 });
 
 // ── Authorization Tests ─────────────────────────────────────────────

@@ -23,9 +23,10 @@ class QuestionnaireFactory extends Factory
             'status' => 'draft',
             'settings' => [
                 'time_limit' => null,
-                'items_per_page' => 10,
+                'presentation_mode' => 'per_page',
+                'items_per_step' => null,
                 'allow_back_navigation' => true,
-                'shuffle_sections' => false,
+                'shuffle_pages' => false,
                 'shuffle_items' => false,
             ],
         ];

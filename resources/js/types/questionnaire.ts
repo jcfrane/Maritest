@@ -27,7 +27,8 @@ export interface QuestionnairePage {
 
 export interface QuestionnaireSettings {
     time_limit: number | null;
-    items_per_page: number | null;
+    presentation_mode: 'per_page' | 'per_item';
+    items_per_step: number | null;
     allow_back_navigation: boolean;
     shuffle_pages: boolean;
     shuffle_items: boolean;

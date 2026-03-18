@@ -290,19 +290,59 @@ function handlePublish(): void {
                             </div>
 
                             <div class="space-y-1.5">
-                                <Label>Items Per Page</Label>
+                                <Label>Presentation Mode</Label>
+                                <div class="flex gap-2">
+                                    <button
+                                        type="button"
+                                        class="flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors"
+                                        :class="
+                                            form.settings.presentation_mode === 'per_page'
+                                                ? 'border-primary bg-primary/10 text-primary'
+                                                : 'border-border text-muted-foreground hover:text-foreground'
+                                        "
+                                        @click="form.settings.presentation_mode = 'per_page'; form.settings.items_per_step = null"
+                                    >
+                                        Per Page
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors"
+                                        :class="
+                                            form.settings.presentation_mode === 'per_item'
+                                                ? 'border-primary bg-primary/10 text-primary'
+                                                : 'border-border text-muted-foreground hover:text-foreground'
+                                        "
+                                        @click="form.settings.presentation_mode = 'per_item'; form.settings.items_per_step = form.settings.items_per_step ?? 1"
+                                    >
+                                        Per Item
+                                    </button>
+                                </div>
+                                <p class="text-xs text-muted-foreground">
+                                    <strong>Per Page</strong> shows all items on each author-defined page.
+                                    <strong>Per Item</strong> presents a fixed number of items per step.
+                                </p>
+                            </div>
+
+                            <div
+                                v-if="form.settings.presentation_mode === 'per_item'"
+                                class="space-y-1.5"
+                            >
+                                <Label>Items Per Step</Label>
                                 <Input
                                     :model-value="
-                                        form.settings.items_per_page ?? ''
+                                        form.settings.items_per_step ?? ''
                                     "
                                     type="number"
                                     class="h-9"
                                     :min="1"
                                     @update:model-value="
-                                        form.settings.items_per_page =
+                                        form.settings.items_per_step =
                                             toNullableNumber($event)
                                     "
                                 />
+                                <p class="text-xs text-muted-foreground">
+                                    Number of items shown at a time. Defaults to 1 for exam mode.
+                                </p>
                             </div>
 
                             <div class="flex items-center justify-between">

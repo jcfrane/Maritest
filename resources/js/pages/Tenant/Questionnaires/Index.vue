@@ -125,7 +125,7 @@ const filteredQuestionnaires = computed(() => {
                         <TableRow class="hover:bg-transparent">
                             <TableHead class="w-[40%]">Title</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>Sections</TableHead>
+                            <TableHead>Pages</TableHead>
                             <TableHead>Updated</TableHead>
                             <TableHead class="text-right">Actions</TableHead>
                         </TableRow>
