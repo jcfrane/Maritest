@@ -2,9 +2,9 @@
 import { Pilcrow, Plus, Trash2, Type } from 'lucide-vue-next';
 import TiptapEditor from '@/components/TiptapEditor.vue';
 import { Button } from '@/components/ui/button';
+import { getChoiceLabel } from '@/lib/questionnaire';
 import type { QuestionnaireItem } from '@/types/questionnaire';
-
-type LabelType = 'alphabetical' | 'numerical' | 'roman' | 'none';
+import type { LabelType } from '@/types/questionnaire';
 
 const props = defineProps<{
     item: QuestionnaireItem;
@@ -17,37 +17,6 @@ defineEmits<{
     removeChoice: [index: number];
     toggleChoiceTiptap: [index: number];
 }>();
-
-function toRoman(num: number): string {
-    const romanNumerals: [number, string][] = [
-        [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'],
-        [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'],
-        [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
-    ];
-    let result = '';
-
-    for (const [value, symbol] of romanNumerals) {
-        while (num >= value) {
-            result += symbol;
-            num -= value;
-        }
-    }
-
-    return result;
-}
-
-function getChoiceLabel(index: number, labelType: LabelType): string {
-    switch (labelType) {
-        case 'alphabetical':
-            return String.fromCharCode(65 + index);
-        case 'numerical':
-            return String(index + 1);
-        case 'roman':
-            return toRoman(index + 1);
-        case 'none':
-            return '';
-    }
-}
 
 function getLabelType(): LabelType {
     return (props.item.properties as Record<string, unknown>)?.label_type as LabelType ?? 'alphabetical';

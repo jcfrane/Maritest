@@ -1,30 +1,25 @@
 <script setup lang="ts">
-import type { RequestPayload } from '@inertiajs/core';
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import { Cloud, CloudOff, Loader2 } from 'lucide-vue-next';
-import { computed, nextTick, reactive, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useBuilderAutoSave } from '@/composables/useBuilderAutoSave';
+import { useBuilderForm } from '@/composables/useBuilderForm';
+import { useBuilderItems } from '@/composables/useBuilderItems';
+import { useBuilderPages } from '@/composables/useBuilderPages';
+import { useBuilderTiptap } from '@/composables/useBuilderTiptap';
 import { useTenantImageUpload } from '@/composables/useTenantImageUpload';
 import TenantLayout from '@/layouts/TenantLayout.vue';
+import { toNullableNumber } from '@/lib/questionnaire';
 import { dashboard } from '@/routes/tenant';
-import {
-    index as questionnairesIndex,
-    store as questionnairesStore,
-    update as questionnairesUpdate,
-} from '@/routes/tenant/questionnaires';
+import { index as questionnairesIndex } from '@/routes/tenant/questionnaires';
 import type { BreadcrumbItem } from '@/types';
-import type {
-    Questionnaire,
-    QuestionnaireItem,
-    QuestionnairePage,
-    QuestionnaireSettings,
-    ItemType,
-} from '@/types/questionnaire';
+import type { Questionnaire } from '@/types/questionnaire';
 import ItemCard from './partials/ItemCard.vue';
 import ItemProperties from './partials/ItemProperties.vue';
 import ItemToolbox from './partials/ItemToolbox.vue';
@@ -42,480 +37,50 @@ const slug = computed(
     () => (page.props.currentTenant as { slug: string })?.slug ?? '',
 );
 
-const isEditing = computed(() => !!props.questionnaire?.id);
-
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     { title: 'Dashboard', href: dashboard.url(slug.value) },
     { title: 'Questionnaires', href: questionnairesIndex.url(slug.value) },
     { title: isEditing.value ? 'Edit' : 'Create', href: '#' },
 ]);
 
-// ── State ────────────────────────────────────────────────────────────
-
-const defaultSettings: QuestionnaireSettings = {
-    time_limit: null,
-    items_per_page: 10,
-    allow_back_navigation: true,
-    shuffle_pages: false,
-    shuffle_items: false,
-};
-
-const itemUiKeys = new WeakMap<QuestionnaireItem, string>();
-const collapsedItemKeys = reactive(new Set<string>());
-let nextItemUiKey = 0;
-
-function getItemUiKey(item: QuestionnaireItem): string {
-    let key = itemUiKeys.get(item);
-
-    if (!key) {
-        key = `item-${nextItemUiKey++}`;
-        itemUiKeys.set(item, key);
-    }
-
-    return key;
-}
-
-const form = reactive<{
-    title: string;
-    description: string;
-    status: 'draft' | 'published';
-    settings: QuestionnaireSettings;
-    pages: QuestionnairePage[];
-}>({
-    title: props.questionnaire?.title ?? 'Untitled Questionnaire',
-    description: props.questionnaire?.description ?? '',
-    status: props.questionnaire?.status ?? 'draft',
-    settings: { ...defaultSettings, ...(props.questionnaire?.settings ?? {}) },
-    pages: props.questionnaire?.pages?.length
-        ? props.questionnaire.pages.map((p) => ({
-              ...p,
-              items: p.items.map((i) => ({
-                  ...i,
-                  choices: i.choices?.map((c) => ({ ...c })) ?? [],
-              })),
-          }))
-        : [createPage(0)],
-});
-
-const activePageIndex = ref(0);
-const selectedItemIndex = ref<number | null>(null);
-const activeTab = ref<'build' | 'settings'>('build');
-const saving = ref(false);
-const lastSaved = ref<Date | null>(null);
-
-const activePage = computed(() => form.pages[activePageIndex.value] ?? null);
-
-form.pages.forEach((page) => {
-    page.items.forEach((item) => {
-        getItemUiKey(item);
-    });
-});
-
-const selectedItem = computed(() => {
-    if (selectedItemIndex.value === null || !activePage.value) {
-        return null;
-    }
-
-    return activePage.value.items[selectedItemIndex.value] ?? null;
-});
-
-// ── Tiptap toggle state ──────────────────────────────────────────────
-
-function isRichText(content?: string | null): boolean {
-    if (!content) {
-        return false;
-    }
-
-    return /<[a-z][\s\S]*>/i.test(content);
-}
-
-const initialTiptapItems = new Set<string>();
-const initialTiptapChoices = new Set<string>();
-
-if (props.questionnaire?.pages?.length) {
-    props.questionnaire.pages.forEach((p, pIndex) => {
-        p.items?.forEach((i, iIndex) => {
-            if (isRichText(i.content)) {
-                initialTiptapItems.add(`${pIndex}-${iIndex}`);
-            }
-
-            i.choices?.forEach((c, cIndex) => {
-                if (isRichText(c.content)) {
-                    initialTiptapChoices.add(`${pIndex}-${iIndex}-${cIndex}`);
-                }
-            });
-        });
-    });
-}
-
-const tiptapEnabledItems = ref<Set<string>>(initialTiptapItems);
-const tiptapEnabledChoices = ref<Set<string>>(initialTiptapChoices);
-
-function itemKey(pIndex: number, iIndex: number): string {
-    return `${pIndex}-${iIndex}`;
-}
-
-function isItemTiptapEnabled(
-    pIndex: number,
-    iIndex: number,
-    type: string,
-): boolean {
-    if (type === 'instruction') {
-        return true;
-    }
-
-    return tiptapEnabledItems.value.has(itemKey(pIndex, iIndex));
-}
-
-function toggleItemTiptap(pIndex: number, iIndex: number): void {
-    const key = itemKey(pIndex, iIndex);
-
-    if (tiptapEnabledItems.value.has(key)) {
-        tiptapEnabledItems.value.delete(key);
-    } else {
-        tiptapEnabledItems.value.add(key);
-    }
-}
-
-function choiceKeyPrefix(pIndex: number, iIndex: number): string {
-    return `${pIndex}-${iIndex}`;
-}
-
-function toggleChoiceTiptap(
-    pIndex: number,
-    iIndex: number,
-    cIndex: number,
-): void {
-    const key = `${pIndex}-${iIndex}-${cIndex}`;
-
-    if (tiptapEnabledChoices.value.has(key)) {
-        tiptapEnabledChoices.value.delete(key);
-    } else {
-        tiptapEnabledChoices.value.add(key);
-    }
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────
-
-function createPage(order: number): QuestionnairePage {
-    return {
-        id: null,
-        title: '',
-        description: '',
-        order,
-        settings: null,
-        items: [],
-    };
-}
-
-function createItem(type: ItemType, order: number): QuestionnaireItem {
-    const item: QuestionnaireItem = {
-        id: null,
-        type,
-        content: '',
-        required: false,
-        order,
-        properties:
-            type === 'single_choice' || type === 'multiple_choice'
-                ? { label_type: 'alphabetical' }
-                : type === 'rating'
-                  ? { max_stars: 5 }
-                  : type === 'scale_rating'
-                    ? {
-                          max_scale: 5,
-                          min_label: 'Lowest',
-                          max_label: 'Highest',
-                      }
-                    : type === 'spinner'
-                      ? { min: 0, max: 100, step: 1 }
-                      : null,
-        choices: [],
-    };
-
-    if (type === 'single_choice' || type === 'multiple_choice') {
-        item.choices = [
-            {
-                id: null,
-                content: 'Option 1',
-                is_correct: false,
-                order: 0,
-                properties: null,
-            },
-            {
-                id: null,
-                content: 'Option 2',
-                is_correct: false,
-                order: 1,
-                properties: null,
-            },
-        ];
-    }
-
-    return item;
-}
-
-function reorderList<T extends { order: number }>(list: T[]): void {
-    list.forEach((item, i) => {
-        item.order = i;
-    });
-}
-
-function toNullableNumber(value: string | number): number | null {
-    const normalized = typeof value === 'number' ? value : Number(value);
-
-    return Number.isNaN(normalized) ? null : normalized;
-}
-
-// ── Page actions ─────────────────────────────────────────────────────
-
-function addPage(): void {
-    form.pages.push(createPage(form.pages.length));
-    activePageIndex.value = form.pages.length - 1;
-    selectedItemIndex.value = null;
-}
-
-function removePage(index: number): void {
-    if (form.pages.length <= 1) {
-        return;
-    }
-
-    form.pages.splice(index, 1);
-    reorderList(form.pages);
-
-    if (activePageIndex.value >= form.pages.length) {
-        activePageIndex.value = form.pages.length - 1;
-    }
-
-    selectedItemIndex.value = null;
-}
-
-function selectPage(index: number): void {
-    activePageIndex.value = index;
-    selectedItemIndex.value = null;
-}
-
-function renamePage(index: number, title: string): void {
-    form.pages[index].title = title;
-}
-
-// ── Item actions ─────────────────────────────────────────────────────
-
-function addItem(type: ItemType): void {
-    if (!activePage.value) {
-        return;
-    }
-
-    const item = createItem(type, activePage.value.items.length);
-
-    getItemUiKey(item);
-    activePage.value.items.push(item);
-    selectedItemIndex.value = activePage.value.items.length - 1;
-}
-
-function removeItem(itemIndex: number): void {
-    if (!activePage.value) {
-        return;
-    }
-
-    const [removedItem] = activePage.value.items.splice(itemIndex, 1);
-
-    if (removedItem) {
-        collapsedItemKeys.delete(getItemUiKey(removedItem));
-    }
-
-    reorderList(activePage.value.items);
-    selectedItemIndex.value = null;
-}
-
-function moveItem(fromIndex: number, direction: 'up' | 'down'): void {
-    if (!activePage.value) {
-        return;
-    }
-
-    const items = activePage.value.items;
-    const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
-
-    if (toIndex < 0 || toIndex >= items.length) {
-        return;
-    }
-
-    const temp = items[fromIndex];
-    items[fromIndex] = items[toIndex];
-    items[toIndex] = temp;
-    reorderList(items);
-
-    if (selectedItemIndex.value === fromIndex) {
-        selectedItemIndex.value = toIndex;
-    }
-}
-
-function reorderItem(fromIndex: number, toIndex: number): void {
-    if (!activePage.value) {
-        return;
-    }
-
-    const items = activePage.value.items;
-    const [moved] = items.splice(fromIndex, 1);
-    items.splice(toIndex, 0, moved);
-    reorderList(items);
-
-    if (selectedItemIndex.value === fromIndex) {
-        selectedItemIndex.value = toIndex;
-    }
-}
-
-function isItemCollapsed(item: QuestionnaireItem): boolean {
-    return collapsedItemKeys.has(getItemUiKey(item));
-}
-
-function toggleItemCollapsed(item: QuestionnaireItem): void {
-    const key = getItemUiKey(item);
-
-    if (collapsedItemKeys.has(key)) {
-        collapsedItemKeys.delete(key);
-    } else {
-        collapsedItemKeys.add(key);
-    }
-}
-
-// ── Choice actions ───────────────────────────────────────────────────
-
-function addChoice(item: QuestionnaireItem): void {
-    item.choices.push({
-        id: null,
-        content: '',
-        is_correct: false,
-        order: item.choices.length,
-        properties: null,
-    });
-}
-
-function removeChoice(item: QuestionnaireItem, choiceIndex: number): void {
-    item.choices.splice(choiceIndex, 1);
-    reorderList(item.choices);
-}
-
-function handleChoiceCorrect(cIdx: number, val: boolean): void {
-    if (activePage.value && selectedItemIndex.value !== null) {
-        const item = activePage.value.items[selectedItemIndex.value];
-
-        if (item.type === 'single_choice' && val) {
-            nextTick(() => {
-                // Completely remap the array so Vue's proxy detects a new structure
-                item.choices = item.choices.map((c, idx) => ({
-                    ...c,
-                    is_correct: idx === cIdx ? true : false,
-                }));
-            });
-        }
-    }
-}
-
-// ── Saving ───────────────────────────────────────────────────────────
-
-function getPayload() {
-    return {
-        title: form.title,
-        description: form.description,
-        status: form.status,
-        settings: form.settings,
-        pages: form.pages.map((p) => ({
-            id: p.id,
-            title: p.title,
-            description: p.description,
-            order: p.order,
-            settings: p.settings,
-            items: p.items.map((item) => ({
-                id: item.id,
-                type: item.type,
-                content: item.content,
-                required: item.required,
-                order: item.order,
-                properties: item.properties,
-                choices: item.choices.map((c) => ({
-                    id: c.id,
-                    content: c.content,
-                    is_correct: c.is_correct,
-                    order: c.order,
-                    properties: c.properties,
-                })),
-            })),
-        })),
-    };
-}
-
-function save(): void {
-    if (pendingUploads.value > 0) {
-        return;
-    }
-
-    saving.value = true;
-    const payload = getPayload();
-
-    if (isEditing.value) {
-        router.put(
-            questionnairesUpdate.url({
-                tenant: slug.value,
-                questionnaire: props.questionnaire!.id!,
-            }),
-            payload as unknown as RequestPayload,
-            {
-                preserveState: true,
-                preserveScroll: true,
-                onFinish: () => {
-                    saving.value = false;
-                    lastSaved.value = new Date();
-                },
-            },
-        );
-    } else {
-        router.post(
-            questionnairesStore.url(slug.value),
-            payload as unknown as RequestPayload,
-            {
-                onFinish: () => {
-                    saving.value = false;
-                    lastSaved.value = new Date();
-                },
-            },
-        );
-    }
-}
-
-function publish(): void {
-    form.status = 'published';
-    nextTick(() => save());
-}
-
-// ── Auto-save ────────────────────────────────────────────────────────
-
-let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
-
-watch(
-    () => JSON.stringify(form),
-    () => {
-        if (!isEditing.value || pendingUploads.value > 0) {
-            return;
-        }
-
-        if (autoSaveTimer) {
-            clearTimeout(autoSaveTimer);
-        }
-
-        autoSaveTimer = setTimeout(() => save(), 3000);
-    },
+const { form, isEditing, createPage, createItem, getPayload } = useBuilderForm(props.questionnaire);
+
+const { activePageIndex, activePage, addPage, removePage, selectPage, renamePage } = useBuilderPages(
+    form.pages,
+    createPage,
+    () => { selectedItemIndex.value = null; },
 );
 
-const formattedLastSaved = computed(() => {
-    if (!lastSaved.value) {
-        return null;
-    }
+const {
+    selectedItemIndex, selectedItem, getItemUiKey,
+    initializeItemKeys,
+    addItem, removeItem, moveItem, reorderItem,
+    isItemCollapsed, toggleItemCollapsed,
+    addChoice, removeChoice, handleChoiceCorrect,
+} = useBuilderItems(activePage, createItem);
 
-    return lastSaved.value.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+const {
+    tiptapEnabledChoices,
+    isItemTiptapEnabled, toggleItemTiptap,
+    choiceKeyPrefix, toggleChoiceTiptap,
+} = useBuilderTiptap(props.questionnaire);
+
+const { saving, lastSaved, formattedLastSaved, save, publish } = useBuilderAutoSave({
+    form,
+    getPayload,
+    isEditing,
+    pendingUploads,
+    slug,
+    questionnaireId: computed(() => props.questionnaire?.id),
 });
+
+const activeTab = ref<'build' | 'settings'>('build');
+
+initializeItemKeys(form.pages);
+
+function handlePublish(): void {
+    publish(form);
+}
 </script>
 
 <template>
@@ -598,7 +163,7 @@ const formattedLastSaved = computed(() => {
                         v-if="form.status === 'draft'"
                         size="sm"
                         :disabled="saving || pendingUploads > 0"
-                        @click="publish"
+                        @click="handlePublish"
                     >
                         Publish
                     </Button>

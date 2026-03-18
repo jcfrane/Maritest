@@ -44,6 +44,8 @@ export interface Questionnaire {
     updated_at?: string;
 }
 
+export type LabelType = 'alphabetical' | 'numerical' | 'roman' | 'none';
+
 export type ItemType =
     | 'instruction'
     | 'short_text'

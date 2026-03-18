@@ -20,9 +20,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import type { QuestionnaireItem, QuestionnairePage, ItemType } from '@/types/questionnaire';
-
-type LabelType = 'alphabetical' | 'numerical' | 'roman' | 'none';
+import { getChoiceLabel } from '@/lib/questionnaire';
+import type { QuestionnaireItem, QuestionnairePage, ItemType, LabelType } from '@/types/questionnaire';
 
 const ITEM_TYPES: { type: ItemType; label: string; icon: typeof Text }[] = [
     { type: 'instruction', label: 'Instruction', icon: FileText },
@@ -93,35 +92,6 @@ function setItemLabelType(item: QuestionnaireItem, value: string): void {
     }
 
     (item.properties as Record<string, unknown>).label_type = value;
-}
-
-function getChoiceLabel(index: number, labelType: LabelType): string {
-    switch (labelType) {
-        case 'alphabetical':
-            return String.fromCharCode(65 + index);
-        case 'numerical':
-            return String(index + 1);
-        case 'roman': {
-            const romanNumerals: [number, string][] = [
-                [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'],
-                [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'],
-                [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
-            ];
-            let result = '';
-            let n = index + 1;
-
-            for (const [value, symbol] of romanNumerals) {
-                while (n >= value) {
-                    result += symbol;
-                    n -= value;
-                }
-            }
-
-            return result;
-        }
-        case 'none':
-            return '';
-    }
 }
 
 function handleUpdateChoiceCorrect(cIdx: number, val: boolean) {
