@@ -33,7 +33,7 @@ class StoreQuestionnaireRequest extends FormRequest
             'pages.*.order' => ['required', 'integer', 'min:0'],
             'pages.*.settings' => ['nullable', 'array'],
             'pages.*.items' => ['nullable', 'array'],
-            'pages.*.items.*.type' => ['required', 'string', 'in:instruction,short_text,long_text,number,single_choice,multiple_choice,file_upload,image'],
+            'pages.*.items.*.type' => ['required', 'string', 'in:instruction,short_text,long_text,number,single_choice,multiple_choice,file_upload,image,rating,scale_rating,date_picker,spinner,fill_in_the_blank'],
             'pages.*.items.*.content' => ['nullable', 'string'],
             'pages.*.items.*.required' => ['nullable', 'boolean'],
             'pages.*.items.*.order' => ['required', 'integer', 'min:0'],

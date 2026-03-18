@@ -9,6 +9,11 @@ import {
     Plus,
     Text,
     Upload,
+    Star,
+    ListStart,
+    Calendar,
+    ChevronDownSquare,
+    WholeWord,
 } from 'lucide-vue-next';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ItemType } from '@/types/questionnaire';
@@ -66,6 +71,36 @@ const ITEM_TYPES: { type: ItemType; label: string; icon: typeof Text; tooltip: s
         label: 'Image',
         icon: ImageIcon,
         tooltip: 'Display an image as part of the questionnaire. The respondent sees the image but does not interact with it directly.',
+    },
+    {
+        type: 'rating',
+        label: 'Rating',
+        icon: Star,
+        tooltip: 'The respondent selects a 1-5 star rating.',
+    },
+    {
+        type: 'scale_rating',
+        label: 'Scale Rating',
+        icon: ListStart,
+        tooltip: 'The respondent selects a value on a custom numeric scale (e.g. 1 to 10), with optional labels for the minimum and maximum.',
+    },
+    {
+        type: 'date_picker',
+        label: 'Date Picker',
+        icon: Calendar,
+        tooltip: 'The respondent picks a structured date (e.g. MM/DD/YYYY) from a calendar interface.',
+    },
+    {
+        type: 'spinner',
+        label: 'Spinner (Number)',
+        icon: ChevronDownSquare,
+        tooltip: 'The respondent picks a number using increment/decrement controls.',
+    },
+    {
+        type: 'fill_in_the_blank',
+        label: 'Fill in the Blank',
+        icon: WholeWord,
+        tooltip: 'Type ___ (three underscores) in your sentence to create fillable blanks for the respondent.',
     },
 ];
 </script>

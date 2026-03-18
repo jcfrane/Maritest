@@ -47,6 +47,10 @@ const props = defineProps<{
     activePage: QuestionnairePage | null;
 }>();
 
+const emit = defineEmits<{
+    'update:choice-correct': [cIdx: number, val: boolean];
+}>();
+
 const FILE_TYPE_PRESETS: { value: string; label: string }[] = [
     { value: 'any', label: 'Any file' },
     { value: 'documents', label: 'Documents (PDF, Word, Excel)' },
@@ -66,6 +70,7 @@ function ensureProperties(item: QuestionnaireItem): Record<string, unknown> {
     if (!item.properties) {
         item.properties = {};
     }
+
     return item.properties as Record<string, unknown>;
 }
 
@@ -86,6 +91,7 @@ function setItemLabelType(item: QuestionnaireItem, value: string): void {
     if (!item.properties) {
         item.properties = {};
     }
+
     (item.properties as Record<string, unknown>).label_type = value;
 }
 
@@ -103,17 +109,40 @@ function getChoiceLabel(index: number, labelType: LabelType): string {
             ];
             let result = '';
             let n = index + 1;
+
             for (const [value, symbol] of romanNumerals) {
                 while (n >= value) {
                     result += symbol;
                     n -= value;
                 }
             }
+
             return result;
         }
         case 'none':
             return '';
     }
+}
+
+function handleUpdateChoiceCorrect(cIdx: number, val: boolean) {
+    if (!props.selectedItem) {
+return;
+}
+    
+    // We must mutate the prop directly here to immediately update the local UI
+    // while we also emit to Builder to keep the form state in sync.
+    // This solves the 'Switch not visually updating' issue natively in Vue.
+    if (props.selectedItem.type === 'single_choice') {
+        props.selectedItem.choices.forEach((c, idx) => {
+             
+            c.is_correct = val ? (idx === cIdx) : false;
+        });
+    } else {
+        // eslint-disable-next-line vue/no-mutating-props
+        props.selectedItem.choices[cIdx].is_correct = val;
+    }
+
+    emit('update:choice-correct', cIdx, val);
 }
 </script>
 
@@ -131,6 +160,7 @@ function getChoiceLabel(index: number, labelType: LabelType): string {
             <div class="space-y-4">
                 <div class="flex items-center justify-between">
                     <Label class="text-xs">Required</Label>
+                    <!-- eslint-disable-next-line vue/no-mutating-props -->
                     <Switch v-model:checked="selectedItem.required" />
                 </div>
 
@@ -142,10 +172,13 @@ function getChoiceLabel(index: number, labelType: LabelType): string {
                         <Label class="text-xs">Allowed File Types</Label>
                         <Select
                             :model-value="(getProperty(selectedItem, 'file_type_preset', 'any') as string)"
-                            @update:model-value="(v: string) => {
-                                setProperty(selectedItem!, 'file_type_preset', v);
-                                if (v !== 'custom') {
-                                    setProperty(selectedItem!, 'accepted_types', FILE_TYPE_MIME_MAP[v]);
+                            @update:model-value="(value) => {
+                                const preset = String(value ?? 'any');
+
+                                setProperty(selectedItem!, 'file_type_preset', preset);
+
+                                if (preset !== 'custom') {
+                                    setProperty(selectedItem!, 'accepted_types', FILE_TYPE_MIME_MAP[preset]);
                                 }
                             }"
                         >
@@ -193,6 +226,110 @@ function getChoiceLabel(index: number, labelType: LabelType): string {
                     </div>
                 </template>
 
+                <!-- Rating properties -->
+                <template v-if="selectedItem.type === 'rating'">
+                    <div class="my-1 h-px bg-border/30" />
+                    
+                    <div class="space-y-1.5">
+                        <Label class="text-xs">Max Stars</Label>
+                        <Select
+                            :model-value="String(getProperty(selectedItem, 'max_stars', 5))"
+                            @update:model-value="(v) => setProperty(selectedItem!, 'max_stars', Number(v))"
+                        >
+                            <SelectTrigger class="h-9">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="3">3 Stars</SelectItem>
+                                <SelectItem value="4">4 Stars</SelectItem>
+                                <SelectItem value="5">5 Stars</SelectItem>
+                                <SelectItem value="10">10 Stars</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </template>
+
+                <!-- Scale Rating properties -->
+                <template v-if="selectedItem.type === 'scale_rating'">
+                    <div class="my-1 h-px bg-border/30" />
+                    
+                    <div class="space-y-1.5">
+                        <Label class="text-xs">Scale Top (Max)</Label>
+                        <Select
+                            :model-value="String(getProperty(selectedItem, 'max_scale', 5))"
+                            @update:model-value="(v) => setProperty(selectedItem!, 'max_scale', Number(v))"
+                        >
+                            <SelectTrigger class="h-9">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="3">1 to 3</SelectItem>
+                                <SelectItem value="4">1 to 4</SelectItem>
+                                <SelectItem value="5">1 to 5</SelectItem>
+                                <SelectItem value="7">1 to 7</SelectItem>
+                                <SelectItem value="10">1 to 10</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div class="space-y-1.5 pt-2">
+                        <Label class="text-xs">Min Label (optional)</Label>
+                        <Input
+                            :model-value="(getProperty(selectedItem, 'min_label', '') as string)"
+                            class="h-9"
+                            placeholder="e.g. Strongly Disagree"
+                            @input="setProperty(selectedItem!, 'min_label', ($event.target as HTMLInputElement).value)"
+                        />
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <Label class="text-xs">Max Label (optional)</Label>
+                        <Input
+                            :model-value="(getProperty(selectedItem, 'max_label', '') as string)"
+                            class="h-9"
+                            placeholder="e.g. Strongly Agree"
+                            @input="setProperty(selectedItem!, 'max_label', ($event.target as HTMLInputElement).value)"
+                        />
+                    </div>
+                </template>
+
+                <!-- Spinner properties -->
+                <template v-if="selectedItem.type === 'spinner'">
+                    <div class="my-1 h-px bg-border/30" />
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1.5">
+                            <Label class="text-xs">Min Value</Label>
+                            <Input
+                                :model-value="(getProperty(selectedItem, 'min', 0) as number)"
+                                type="number"
+                                class="h-9"
+                                @input="setProperty(selectedItem!, 'min', Number(($event.target as HTMLInputElement).value))"
+                            />
+                        </div>
+                        <div class="space-y-1.5">
+                            <Label class="text-xs">Max Value</Label>
+                            <Input
+                                :model-value="(getProperty(selectedItem, 'max', 100) as number)"
+                                type="number"
+                                class="h-9"
+                                @input="setProperty(selectedItem!, 'max', Number(($event.target as HTMLInputElement).value))"
+                            />
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-1.5">
+                        <Label class="text-xs">Increment Step</Label>
+                        <Input
+                            :model-value="(getProperty(selectedItem, 'step', 1) as number)"
+                            type="number"
+                            class="h-9"
+                            :min="1"
+                            @input="setProperty(selectedItem!, 'step', Number(($event.target as HTMLInputElement).value))"
+                        />
+                    </div>
+                </template>
+
                 <!-- Choice properties -->
                 <template
                     v-if="
@@ -206,7 +343,7 @@ function getChoiceLabel(index: number, labelType: LabelType): string {
                         <Label class="text-xs">Choice Labels</Label>
                         <Select
                             :model-value="getItemLabelType(selectedItem)"
-                            @update:model-value="(v: string) => setItemLabelType(selectedItem!, v)"
+                            @update:model-value="(value) => setItemLabelType(selectedItem!, String(value ?? 'alphabetical'))"
                         >
                             <SelectTrigger class="h-9">
                                 <SelectValue />
@@ -245,7 +382,12 @@ function getChoiceLabel(index: number, labelType: LabelType): string {
                             </Label>
                             <div class="flex items-center gap-1.5">
                                 <Label class="text-[10px] text-muted-foreground">Correct</Label>
-                                <Switch v-model:checked="choice.is_correct" class="scale-75" />
+                                <Switch
+                                    :key="`switch-${cIdx}-${choice.is_correct}`"
+                                    :checked="choice.is_correct"
+                                    class="scale-75"
+                                    @update:checked="handleUpdateChoiceCorrect(cIdx, $event)"
+                                />
                             </div>
                         </div>
                     </div>
@@ -263,15 +405,18 @@ function getChoiceLabel(index: number, labelType: LabelType): string {
             <div class="space-y-4">
                 <div class="space-y-1.5">
                     <Label class="text-xs">Page Title</Label>
+                    <!-- eslint-disable-next-line vue/no-mutating-props -->
                     <Input v-model="activePage.title" class="h-9" placeholder="Untitled Page" />
                 </div>
                 <div class="space-y-1.5">
                     <Label class="text-xs">Description</Label>
+                    <!-- eslint-disable vue/no-mutating-props -->
                     <Input
                         v-model="activePage.description"
                         class="h-9"
                         placeholder="Optional description"
                     />
+                    <!-- eslint-enable vue/no-mutating-props -->
                 </div>
             </div>
         </template>

@@ -2,7 +2,7 @@
 import { Pilcrow, Type } from 'lucide-vue-next';
 import TiptapEditor from '@/components/TiptapEditor.vue';
 
-const props = defineProps<{
+defineProps<{
     modelValue: string;
     placeholder?: string;
     isTiptapEnabled: boolean;

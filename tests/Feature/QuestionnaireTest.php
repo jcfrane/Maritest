@@ -206,7 +206,22 @@ test('landlord can view edit questionnaire page', function () {
     [$user, $tenant] = createLandlordWithTenant();
 
     $questionnaire = Questionnaire::factory()->for($user)->create();
-    QuestionnairePage::factory()->for($questionnaire)->create();
+    $page = QuestionnairePage::factory()
+        ->for($questionnaire)
+        ->create(['title' => 'Page 1']);
+    $item = QuestionnaireItem::factory()
+        ->for($page, 'page')
+        ->singleChoice()
+        ->create([
+            'content' => '<p>What is 2 + 2?</p>',
+            'required' => true,
+        ]);
+    QuestionnaireChoice::factory()
+        ->for($item, 'item')
+        ->create([
+            'content' => '<p>4</p>',
+            'is_correct' => true,
+        ]);
 
     $this->actingAs($user)
         ->get(route('tenant.questionnaires.edit', [$tenant, $questionnaire]))
@@ -214,6 +229,19 @@ test('landlord can view edit questionnaire page', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('Tenant/Questionnaires/Builder')
             ->has('questionnaire')
+            ->where('questionnaire.title', $questionnaire->title)
+            ->has('questionnaire.pages', 1)
+            ->where('questionnaire.pages.0.title', 'Page 1')
+            ->has('questionnaire.pages.0.items', 1)
+            ->where(
+                'questionnaire.pages.0.items.0.content',
+                '<p>What is 2 + 2?</p>',
+            )
+            ->has('questionnaire.pages.0.items.0.choices', 1)
+            ->where(
+                'questionnaire.pages.0.items.0.choices.0.content',
+                '<p>4</p>',
+            )
         );
 });
 

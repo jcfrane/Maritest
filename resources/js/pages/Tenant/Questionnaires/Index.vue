@@ -60,6 +60,7 @@ function formatDate(date?: string): string {
     if (!date) {
         return '—';
     }
+
     return new Intl.DateTimeFormat('en-US', {
         month: 'short',
         day: 'numeric',
@@ -70,10 +71,13 @@ function formatDate(date?: string): string {
 const filteredQuestionnaires = computed(() => {
     const props = usePage().props as unknown as Props;
     const list = props.questionnaires?.data ?? [];
+
     if (!search.value) {
         return list;
     }
+
     const q = search.value.toLowerCase();
+
     return list.filter(
         (item) =>
             item.title.toLowerCase().includes(q) ||
@@ -164,7 +168,7 @@ const filteredQuestionnaires = computed(() => {
                             </TableCell>
 
                             <TableCell class="text-muted-foreground">
-                                {{ questionnaire.sections?.length ?? 0 }}
+                                {{ questionnaire.pages?.length ?? 0 }}
                             </TableCell>
 
                             <TableCell class="text-muted-foreground">

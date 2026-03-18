@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ImageIcon, Upload, X } from 'lucide-vue-next';
+import { ImageIcon, Loader2, Upload, X } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
+import { useTenantImageUpload } from '@/composables/useTenantImageUpload';
 
-const props = defineProps<{
+defineProps<{
     modelValue: string;
 }>();
 
@@ -12,7 +13,9 @@ const emit = defineEmits<{
 }>();
 
 const isDragging = ref(false);
+const isUploading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
+const { uploadImage } = useTenantImageUpload();
 
 function handleDragOver(event: DragEvent): void {
     event.preventDefault();
@@ -28,6 +31,7 @@ function handleDrop(event: DragEvent): void {
     isDragging.value = false;
 
     const file = event.dataTransfer?.files?.[0];
+
     if (file && file.type.startsWith('image/')) {
         processFile(file);
     }
@@ -36,19 +40,29 @@ function handleDrop(event: DragEvent): void {
 function handleFileSelect(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
+
     if (file) {
         processFile(file);
     }
+
     input.value = '';
 }
 
-function processFile(file: File): void {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const result = e.target?.result as string;
-        emit('update:modelValue', result);
-    };
-    reader.readAsDataURL(file);
+async function processFile(file: File): Promise<void> {
+    if (isUploading.value) return;
+
+    isUploading.value = true;
+
+    try {
+        emit('update:modelValue', await uploadImage(file));
+    } catch (error) {
+        console.error('Error uploading image:', error);
+    } finally {
+        isUploading.value = false;
+        if (fileInput.value) {
+            fileInput.value.value = '';
+        }
+    }
 }
 
 function triggerFileInput(): void {
@@ -93,21 +107,29 @@ function removeImage(): void {
             @drop="handleDrop"
             @click.stop="triggerFileInput"
         >
-            <div
-                class="mb-3 flex size-10 items-center justify-center rounded-full bg-muted/40"
-            >
-                <ImageIcon class="size-5 text-muted-foreground" />
+            <div v-if="isUploading" class="flex flex-col items-center justify-center">
+                <Loader2 class="mb-3 size-10 animate-spin text-primary" />
+                <p class="text-sm font-medium text-foreground/70">
+                    Uploading image...
+                </p>
             </div>
-            <p class="text-sm font-medium text-foreground/70">
-                Drop image here or click to upload
-            </p>
-            <p class="mt-1 text-xs text-muted-foreground">
-                PNG, JPG, GIF, SVG up to 5MB
-            </p>
-            <div class="mt-3 flex items-center gap-1.5 text-xs text-primary">
-                <Upload class="size-3" />
-                Browse files
-            </div>
+            <template v-else>
+                <div
+                    class="mb-3 flex size-10 items-center justify-center rounded-full bg-muted/40"
+                >
+                    <ImageIcon class="size-5 text-muted-foreground" />
+                </div>
+                <p class="text-sm font-medium text-foreground/70">
+                    Drop image here or click to upload
+                </p>
+                <p class="mt-1 text-xs text-muted-foreground">
+                    PNG, JPG, GIF, SVG up to 5MB
+                </p>
+                <div class="mt-3 flex items-center gap-1.5 text-xs text-primary">
+                    <Upload class="size-3" />
+                    Browse files
+                </div>
+            </template>
         </div>
 
         <input

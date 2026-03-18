@@ -52,7 +52,12 @@ export type ItemType =
     | 'single_choice'
     | 'multiple_choice'
     | 'file_upload'
-    | 'image';
+    | 'image'
+    | 'rating'
+    | 'scale_rating'
+    | 'date_picker'
+    | 'spinner'
+    | 'fill_in_the_blank';
 
 export const ITEM_TYPE_LABELS: Record<ItemType, string> = {
     instruction: 'Instruction',
@@ -63,4 +68,9 @@ export const ITEM_TYPE_LABELS: Record<ItemType, string> = {
     multiple_choice: 'Multiple Choice',
     file_upload: 'File Upload',
     image: 'Image',
+    rating: 'Rating',
+    scale_rating: 'Scale Rating',
+    date_picker: 'Date Picker',
+    spinner: 'Spinner',
+    fill_in_the_blank: 'Fill in the Blank',
 };

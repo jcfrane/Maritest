@@ -54,9 +54,9 @@ class QuestionnaireController extends Controller
         Gate::authorize('update', $questionnaire);
 
         return Inertia::render('Tenant/Questionnaires/Builder', [
-            'questionnaire' => new QuestionnaireResource(
-                $questionnaire->load('pages.items.choices'),
-            ),
+            'questionnaire' => json_decode((new QuestionnaireResource(
+                $questionnaire->load('pages.items.choices')
+            ))->toJson(), true),
         ]);
     }
 

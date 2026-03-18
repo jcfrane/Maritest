@@ -2,7 +2,7 @@
 import { Pilcrow, Plus, Trash2, Type } from 'lucide-vue-next';
 import TiptapEditor from '@/components/TiptapEditor.vue';
 import { Button } from '@/components/ui/button';
-import type { QuestionnaireChoice, QuestionnaireItem } from '@/types/questionnaire';
+import type { QuestionnaireItem } from '@/types/questionnaire';
 
 type LabelType = 'alphabetical' | 'numerical' | 'roman' | 'none';
 
@@ -12,7 +12,7 @@ const props = defineProps<{
     choiceKeyPrefix: string;
 }>();
 
-const emit = defineEmits<{
+defineEmits<{
     addChoice: [];
     removeChoice: [index: number];
     toggleChoiceTiptap: [index: number];
@@ -25,12 +25,14 @@ function toRoman(num: number): string {
         [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
     ];
     let result = '';
+
     for (const [value, symbol] of romanNumerals) {
         while (num >= value) {
             result += symbol;
             num -= value;
         }
     }
+
     return result;
 }
 
