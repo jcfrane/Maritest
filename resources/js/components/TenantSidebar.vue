@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     CalendarDays,
     ClipboardList,
+    Layers3,
     FileText,
     LayoutGrid,
     User,
@@ -23,6 +24,8 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes/tenant';
 import { index as candidatesIndex } from '@/routes/tenant/candidates';
+import { index as examSetsIndex } from '@/routes/tenant/exam-sets';
+import { index as questionnairesIndex } from '@/routes/tenant/questionnaires';
 import { index as usersIndex } from '@/routes/tenant/users';
 import type { NavItem } from '@/types';
 
@@ -43,8 +46,13 @@ const platformNavItems: NavItem[] = [
     },
     {
         title: 'Questionnaires',
-        href: `/t/${slug}/questionnaires`,
+        href: questionnairesIndex.url(slug),
         icon: ClipboardList,
+    },
+    {
+        title: 'Exam Sets',
+        href: examSetsIndex.url(slug),
+        icon: Layers3,
     },
     {
         title: 'Schedules',

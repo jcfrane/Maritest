@@ -24,6 +24,13 @@ class RoleAndPermissionSeeder extends Seeder
             'delete-questionnaire',
             'publish-questionnaire',
 
+            // Exam sets
+            'manage-exam-sets',
+            'create-exam-set',
+            'edit-exam-set',
+            'delete-exam-set',
+            'publish-exam-set',
+
             // Schedules
             'manage-schedules',
             'create-schedule',
@@ -57,6 +64,8 @@ class RoleAndPermissionSeeder extends Seeder
         $tenantAdmin->syncPermissions([
             'manage-questionnaires', 'create-questionnaire', 'edit-questionnaire',
             'delete-questionnaire', 'publish-questionnaire',
+            'manage-exam-sets', 'create-exam-set', 'edit-exam-set',
+            'delete-exam-set', 'publish-exam-set',
             'manage-schedules', 'create-schedule', 'edit-schedule', 'delete-schedule',
             'manage-users', 'create-user', 'invite-user', 'delete-user',
             'view-submissions', 'grade-submissions', 'export-submissions',
@@ -66,6 +75,8 @@ class RoleAndPermissionSeeder extends Seeder
         $tenantManager->syncPermissions([
             'manage-questionnaires', 'create-questionnaire', 'edit-questionnaire',
             'publish-questionnaire',
+            'manage-exam-sets', 'create-exam-set', 'edit-exam-set',
+            'publish-exam-set',
             'manage-schedules', 'create-schedule', 'edit-schedule',
             'view-submissions', 'grade-submissions',
         ]);

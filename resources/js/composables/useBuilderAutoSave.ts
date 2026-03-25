@@ -1,6 +1,6 @@
 import type { RequestPayload } from '@inertiajs/core';
 import { router } from '@inertiajs/vue3';
-import type { ComputedRef, Readonly, Ref } from 'vue';
+import type { ComputedRef, Ref } from 'vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import {
     store as questionnairesStore,
@@ -15,7 +15,14 @@ export function useBuilderAutoSave(options: {
     slug: ComputedRef<string>;
     questionnaireId: ComputedRef<number | undefined>;
 }) {
-    const { form, getPayload, isEditing, pendingUploads, slug, questionnaireId } = options;
+    const {
+        form,
+        getPayload,
+        isEditing,
+        pendingUploads,
+        slug,
+        questionnaireId,
+    } = options;
 
     const saving = ref(false);
     const lastSaved = ref<Date | null>(null);

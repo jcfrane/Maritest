@@ -32,7 +32,10 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Candidates', href: candidatesIndex.url(slug) },
     {
         title: 'Edit Candidate',
-        href: candidatesEdit.url({ tenant: slug, candidate: props.candidate.data.id }),
+        href: candidatesEdit.url({
+            tenant: slug,
+            candidate: props.candidate.data.id,
+        }),
     },
 ];
 
@@ -44,7 +47,12 @@ const form = useForm({
 });
 
 function submit(): void {
-    form.put(candidatesUpdate.url({ tenant: slug, candidate: props.candidate.data.id }));
+    form.put(
+        candidatesUpdate.url({
+            tenant: slug,
+            candidate: props.candidate.data.id,
+        }),
+    );
 }
 </script>
 
@@ -57,8 +65,28 @@ function submit(): void {
             description="Update candidate account details without changing it into an internal user."
             content-class="gap-6"
         >
-            <PagePanel body-class="p-6">
-                <form class="max-w-lg space-y-6" @submit.prevent="submit">
+            <PagePanel
+                panel-class="mx-auto w-full max-w-3xl"
+                body-class="p-6 md:p-8"
+            >
+                <template #header>
+                    <div class="space-y-1">
+                        <h2
+                            class="text-lg font-semibold tracking-tight text-foreground"
+                        >
+                            Account details
+                        </h2>
+                        <p class="text-sm text-muted-foreground">
+                            Update the core account information while keeping
+                            this person assigned as a candidate.
+                        </p>
+                    </div>
+                </template>
+
+                <form
+                    class="mx-auto w-full max-w-xl space-y-6"
+                    @submit.prevent="submit"
+                >
                     <div class="grid gap-2">
                         <Label for="name">Name</Label>
                         <Input

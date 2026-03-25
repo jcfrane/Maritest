@@ -101,6 +101,25 @@ describe('edit', function () {
 
         $response->assertNotFound();
     });
+
+    it('uses the same centered account form layout as the create page', function () {
+        $createContents = file_get_contents(resource_path('js/pages/Tenant/Candidates/Create.vue'));
+        $editContents = file_get_contents(resource_path('js/pages/Tenant/Candidates/Edit.vue'));
+
+        expect($createContents)->not->toBeFalse()
+            ->and($editContents)->not->toBeFalse();
+
+        collect([
+            'panel-class="mx-auto w-full max-w-3xl"',
+            'body-class="p-6 md:p-8"',
+            'class="mx-auto w-full max-w-xl space-y-6"',
+            '<h2',
+            'Account details',
+        ])->each(function (string $marker) use ($createContents, $editContents): void {
+            expect($createContents)->toContain($marker);
+            expect($editContents)->toContain($marker);
+        });
+    });
 });
 
 describe('update', function () {

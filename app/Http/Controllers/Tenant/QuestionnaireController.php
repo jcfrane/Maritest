@@ -26,7 +26,7 @@ class QuestionnaireController extends Controller
 
         return Inertia::render('Tenant/Questionnaires/Index', [
             'questionnaires' => QuestionnaireResource::collection(
-                ListQuestionnaires::run($this->getUser()),
+                ListQuestionnaires::run($tenant, $this->getUser()),
             ),
         ]);
     }
@@ -41,6 +41,7 @@ class QuestionnaireController extends Controller
     public function store(Tenant $tenant, StoreQuestionnaireRequest $request): RedirectResponse
     {
         $questionnaire = CreateQuestionnaire::run(
+            $tenant,
             $request->user()->id,
             $request->validated(),
         );

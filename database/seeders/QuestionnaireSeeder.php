@@ -6,25 +6,32 @@ use App\Models\Questionnaire;
 use App\Models\QuestionnaireChoice;
 use App\Models\QuestionnaireItem;
 use App\Models\QuestionnairePage;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
 class QuestionnaireSeeder extends Seeder
 {
     public function run(): void
     {
         $user = User::where('email', 'admin@proact.com')->firstOrFail();
+        $tenant = $user->tenants()->first();
 
-        $this->createSurveyQuestionnaire($user);
-        $this->createExamQuestionnaire($user);
+        if (! $tenant instanceof Tenant) {
+            throw new RuntimeException('QuestionnaireSeeder requires the admin user to belong to a tenant.');
+        }
+
+        $this->createSurveyQuestionnaire($tenant, $user);
+        $this->createExamQuestionnaire($tenant, $user);
     }
 
     /**
      * A multi-page survey using per_page presentation mode.
      */
-    private function createSurveyQuestionnaire(User $user): void
+    private function createSurveyQuestionnaire(Tenant $tenant, User $user): void
     {
-        $questionnaire = Questionnaire::factory()->for($user)->create([
+        $questionnaire = Questionnaire::factory()->for($tenant)->for($user)->create([
             'title' => 'Employee Satisfaction Survey',
             'description' => 'Annual survey to assess workplace satisfaction and gather feedback.',
             'status' => 'published',
@@ -83,9 +90,9 @@ class QuestionnaireSeeder extends Seeder
     /**
      * A multi-page exam using per_item presentation mode (1 item at a time).
      */
-    private function createExamQuestionnaire(User $user): void
+    private function createExamQuestionnaire(Tenant $tenant, User $user): void
     {
-        $questionnaire = Questionnaire::factory()->for($user)->create([
+        $questionnaire = Questionnaire::factory()->for($tenant)->for($user)->create([
             'title' => 'General Knowledge Exam',
             'description' => 'A timed exam covering general knowledge topics. One question at a time.',
             'status' => 'published',

@@ -3,6 +3,7 @@
 namespace App\Actions\Questionnaires;
 
 use App\Models\Questionnaire;
+use App\Models\Tenant;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -37,10 +38,11 @@ class CreateQuestionnaire
      *     }>
      * }  $data
      */
-    public function handle(int $userId, array $data): Questionnaire
+    public function handle(Tenant $tenant, int $userId, array $data): Questionnaire
     {
-        return DB::transaction(function () use ($userId, $data) {
+        return DB::transaction(function () use ($tenant, $userId, $data) {
             $questionnaire = Questionnaire::create([
+                'tenant_id' => $tenant->id,
                 'user_id' => $userId,
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,

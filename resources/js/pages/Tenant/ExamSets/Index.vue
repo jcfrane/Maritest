@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { ClipboardList, Plus, Pencil, Trash2, Search } from 'lucide-vue-next';
+import { Layers3, Pencil, Plus, Search, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import PagePanel from '@/components/page/PagePanel.vue';
@@ -19,19 +19,19 @@ import {
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import { dashboard } from '@/routes/tenant';
 import {
-    index as questionnairesIndex,
-    create as questionnairesCreate,
-    edit as questionnairesEdit,
-    destroy as questionnairesDestroy,
-} from '@/routes/tenant/questionnaires';
+    create as examSetsCreate,
+    destroy as examSetsDestroy,
+    edit as examSetsEdit,
+    index as examSetsIndex,
+} from '@/routes/tenant/exam-sets';
 import type { BreadcrumbItem } from '@/types';
-import type { Questionnaire } from '@/types/questionnaire';
+import type { ExamSet } from '@/types/exam-set';
 
 type Props = {
-    questionnaires: { data: Questionnaire[] };
+    examSets: { data: ExamSet[] };
 };
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
 const page = usePage();
 const slug = computed(
@@ -40,41 +40,41 @@ const slug = computed(
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: dashboard.url(slug.value) },
-    { title: 'Questionnaires', href: questionnairesIndex.url(slug.value) },
+    { title: 'Exam Sets', href: examSetsIndex.url(slug.value) },
 ];
 
 const search = ref('');
-const selectedQuestionnaire = ref<Questionnaire | null>(null);
-const isDeletingQuestionnaire = ref(false);
+const selectedExamSet = ref<ExamSet | null>(null);
+const isDeletingExamSet = ref(false);
 
-function promptDeleteQuestionnaire(questionnaire: Questionnaire): void {
-    selectedQuestionnaire.value = questionnaire;
+function promptDeleteExamSet(examSet: ExamSet): void {
+    selectedExamSet.value = examSet;
 }
 
-function setDeleteQuestionnaireDialogOpen(open: boolean): void {
+function setDeleteExamSetDialogOpen(open: boolean): void {
     if (!open) {
-        selectedQuestionnaire.value = null;
+        selectedExamSet.value = null;
     }
 }
 
-function deleteQuestionnaire(): void {
-    if (!selectedQuestionnaire.value?.id) {
+function deleteExamSet(): void {
+    if (!selectedExamSet.value?.id) {
         return;
     }
 
-    isDeletingQuestionnaire.value = true;
+    isDeletingExamSet.value = true;
 
     router.delete(
-        questionnairesDestroy.url({
+        examSetsDestroy.url({
             tenant: slug.value,
-            questionnaire: selectedQuestionnaire.value.id,
+            exam_set: selectedExamSet.value.id,
         }),
         {
             onSuccess: () => {
-                selectedQuestionnaire.value = null;
+                selectedExamSet.value = null;
             },
             onFinish: () => {
-                isDeletingQuestionnaire.value = false;
+                isDeletingExamSet.value = false;
             },
         },
     );
@@ -92,31 +92,30 @@ function formatDate(date?: string): string {
     }).format(new Date(date));
 }
 
-const filteredQuestionnaires = computed(() => {
-    const props = usePage().props as unknown as Props;
-    const list = props.questionnaires?.data ?? [];
+const filteredExamSets = computed(() => {
+    const list = props.examSets.data ?? [];
 
     if (!search.value) {
         return list;
     }
 
-    const q = search.value.toLowerCase();
+    const query = search.value.toLowerCase();
 
     return list.filter(
-        (item) =>
-            item.title.toLowerCase().includes(q) ||
-            (item.description && item.description.toLowerCase().includes(q)),
+        (examSet) =>
+            examSet.title.toLowerCase().includes(query) ||
+            (examSet.description ?? '').toLowerCase().includes(query),
     );
 });
 </script>
 
 <template>
-    <Head :title="`Questionnaires`" />
+    <Head title="Exam Sets" />
 
     <TenantLayout :breadcrumbs="breadcrumbs">
         <PageShell
-            title="Questionnaires"
-            description="Create and manage exams, surveys, and other questionnaires."
+            title="Exam Sets"
+            description="Bundle published questionnaires into reusable logical groupings."
             content-class="gap-5"
         >
             <PagePanel>
@@ -130,15 +129,15 @@ const filteredQuestionnaires = computed(() => {
                             />
                             <Input
                                 v-model="search"
-                                placeholder="Search questionnaires..."
+                                placeholder="Search exam sets..."
                                 class="h-10 border-border/70 bg-background pl-9 shadow-none"
                             />
                         </div>
 
-                        <Link :href="questionnairesCreate.url(slug)">
+                        <Link :href="examSetsCreate.url(slug)">
                             <Button class="h-10 shadow-none">
                                 <Plus class="size-4" />
-                                New Questionnaire
+                                New Exam Set
                             </Button>
                         </Link>
                     </div>
@@ -149,7 +148,7 @@ const filteredQuestionnaires = computed(() => {
                         <TableRow class="hover:bg-transparent">
                             <TableHead class="w-[40%]">Title</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>Pages</TableHead>
+                            <TableHead>Questionnaires</TableHead>
                             <TableHead>Updated</TableHead>
                             <TableHead class="text-right">Actions</TableHead>
                         </TableRow>
@@ -157,8 +156,8 @@ const filteredQuestionnaires = computed(() => {
 
                     <TableBody>
                         <TableRow
-                            v-for="questionnaire in filteredQuestionnaires"
-                            :key="questionnaire.id"
+                            v-for="examSet in filteredExamSets"
+                            :key="examSet.id"
                             class="bg-background/70"
                         >
                             <TableCell>
@@ -166,21 +165,19 @@ const filteredQuestionnaires = computed(() => {
                                     <div
                                         class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10"
                                     >
-                                        <ClipboardList
-                                            class="size-4 text-primary"
-                                        />
+                                        <Layers3 class="size-4 text-primary" />
                                     </div>
                                     <div class="space-y-0.5">
                                         <div
                                             class="font-medium text-foreground"
                                         >
-                                            {{ questionnaire.title }}
+                                            {{ examSet.title }}
                                         </div>
                                         <div
-                                            v-if="questionnaire.description"
+                                            v-if="examSet.description"
                                             class="line-clamp-1 text-xs text-muted-foreground"
                                         >
-                                            {{ questionnaire.description }}
+                                            {{ examSet.description }}
                                         </div>
                                     </div>
                                 </div>
@@ -189,22 +186,25 @@ const filteredQuestionnaires = computed(() => {
                             <TableCell>
                                 <Badge
                                     :variant="
-                                        questionnaire.status === 'published'
+                                        examSet.status === 'published'
                                             ? 'default'
                                             : 'secondary'
                                     "
                                     class="capitalize"
                                 >
-                                    {{ questionnaire.status }}
+                                    {{ examSet.status }}
                                 </Badge>
                             </TableCell>
 
                             <TableCell class="text-muted-foreground">
-                                {{ questionnaire.pages?.length ?? 0 }}
+                                {{
+                                    examSet.questionnaire_count ??
+                                    examSet.questionnaires.length
+                                }}
                             </TableCell>
 
                             <TableCell class="text-muted-foreground">
-                                {{ formatDate(questionnaire.updated_at) }}
+                                {{ formatDate(examSet.updated_at) }}
                             </TableCell>
 
                             <TableCell class="text-right">
@@ -213,10 +213,9 @@ const filteredQuestionnaires = computed(() => {
                                 >
                                     <Link
                                         :href="
-                                            questionnairesEdit.url({
+                                            examSetsEdit.url({
                                                 tenant: slug,
-                                                questionnaire:
-                                                    questionnaire.id!,
+                                                exam_set: examSet.id!,
                                             })
                                         "
                                     >
@@ -229,12 +228,8 @@ const filteredQuestionnaires = computed(() => {
                                         variant="ghost"
                                         size="sm"
                                         class="text-destructive hover:text-destructive"
-                                        :disabled="isDeletingQuestionnaire"
-                                        @click="
-                                            promptDeleteQuestionnaire(
-                                                questionnaire,
-                                            )
-                                        "
+                                        :disabled="isDeletingExamSet"
+                                        @click="promptDeleteExamSet(examSet)"
                                     >
                                         <Trash2 class="size-3.5" />
                                     </Button>
@@ -243,7 +238,7 @@ const filteredQuestionnaires = computed(() => {
                         </TableRow>
 
                         <TableRow
-                            v-if="filteredQuestionnaires.length === 0"
+                            v-if="filteredExamSets.length === 0"
                             class="hover:bg-transparent"
                         >
                             <TableCell
@@ -251,15 +246,15 @@ const filteredQuestionnaires = computed(() => {
                                 class="px-4 py-12 text-center"
                             >
                                 <div class="space-y-2">
-                                    <ClipboardList
+                                    <Layers3
                                         class="mx-auto size-8 text-muted-foreground/50"
                                     />
                                     <p class="font-medium text-foreground">
-                                        No questionnaires found
+                                        No exam sets found
                                     </p>
                                     <p class="text-sm text-muted-foreground">
-                                        Create your first questionnaire to get
-                                        started.
+                                        Create an exam set to start bundling
+                                        published questionnaires.
                                     </p>
                                 </div>
                             </TableCell>
@@ -269,18 +264,18 @@ const filteredQuestionnaires = computed(() => {
             </PagePanel>
 
             <ConfirmDialog
-                :open="selectedQuestionnaire !== null"
-                title="Delete questionnaire?"
+                :open="selectedExamSet !== null"
+                title="Delete exam set?"
                 :description="
-                    selectedQuestionnaire
-                        ? `${selectedQuestionnaire.title} will be permanently deleted. This action cannot be undone.`
+                    selectedExamSet
+                        ? `${selectedExamSet.title} will be permanently deleted. Linked questionnaires will stay intact.`
                         : ''
                 "
-                confirm-label="Delete questionnaire"
-                pending-label="Deleting questionnaire..."
-                :pending="isDeletingQuestionnaire"
-                @update:open="setDeleteQuestionnaireDialogOpen"
-                @confirm="deleteQuestionnaire"
+                confirm-label="Delete exam set"
+                pending-label="Deleting exam set..."
+                :pending="isDeletingExamSet"
+                @update:open="setDeleteExamSetDialogOpen"
+                @confirm="deleteExamSet"
             />
         </PageShell>
     </TenantLayout>

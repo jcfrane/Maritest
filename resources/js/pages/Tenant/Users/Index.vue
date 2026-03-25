@@ -2,6 +2,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Search, SlidersHorizontal, UserPlus } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import PagePanel from '@/components/page/PagePanel.vue';
 import PageShell from '@/components/page/PageShell.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -27,8 +28,10 @@ import {
 } from '@/routes/tenant/users';
 import type { BreadcrumbItem, User } from '@/types';
 
+type TenantUser = User & { roles?: string[] };
+
 type PaginatedUsers = {
-    data: (User & { roles?: string[] })[];
+    data: TenantUser[];
     links: { url: string | null; label: string; active: boolean }[];
     current_page: number;
     last_page: number;
@@ -56,6 +59,8 @@ const search = ref(
         'filter[search]',
     ) ?? '',
 );
+const selectedUser = ref<TenantUser | null>(null);
+const isDeletingUser = ref(false);
 
 const tenantUsers = computed(() =>
     props.users.data.map((user) => ({
@@ -72,10 +77,34 @@ function applyFilters(): void {
     );
 }
 
-function deleteUser(userId: number): void {
-    if (confirm('Are you sure you want to remove this user?')) {
-        router.delete(usersDestroy.url({ tenant: slug.value, user: userId }));
+function promptDeleteUser(user: TenantUser): void {
+    selectedUser.value = user;
+}
+
+function setDeleteUserDialogOpen(open: boolean): void {
+    if (!open) {
+        selectedUser.value = null;
     }
+}
+
+function deleteUser(): void {
+    if (!selectedUser.value) {
+        return;
+    }
+
+    isDeletingUser.value = true;
+
+    router.delete(
+        usersDestroy.url({ tenant: slug.value, user: selectedUser.value.id }),
+        {
+            onSuccess: () => {
+                selectedUser.value = null;
+            },
+            onFinish: () => {
+                isDeletingUser.value = false;
+            },
+        },
+    );
 }
 </script>
 
@@ -229,7 +258,8 @@ function deleteUser(userId: number): void {
                                         variant="ghost"
                                         size="sm"
                                         class="text-destructive hover:text-destructive"
-                                        @click="deleteUser(user.id)"
+                                        :disabled="isDeletingUser"
+                                        @click="promptDeleteUser(user)"
                                     >
                                         Remove
                                     </Button>
@@ -304,6 +334,21 @@ function deleteUser(userId: number): void {
                     </div>
                 </template>
             </PagePanel>
+
+            <ConfirmDialog
+                :open="selectedUser !== null"
+                title="Remove user?"
+                :description="
+                    selectedUser
+                        ? `${selectedUser.name} will lose access to ${tenant?.name ?? 'this tenant'}. Their account record will remain available elsewhere.`
+                        : ''
+                "
+                confirm-label="Remove user"
+                pending-label="Removing user..."
+                :pending="isDeletingUser"
+                @update:open="setDeleteUserDialogOpen"
+                @confirm="deleteUser"
+            />
         </PageShell>
     </TenantLayout>
 </template>

@@ -2,15 +2,15 @@
 
 namespace Database\Factories;
 
-use App\Models\Questionnaire;
+use App\Models\ExamSet;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<Questionnaire>
+ * @extends Factory<ExamSet>
  */
-class QuestionnaireFactory extends Factory
+class ExamSetFactory extends Factory
 {
     /**
      * @return array<string, mixed>
@@ -21,22 +21,14 @@ class QuestionnaireFactory extends Factory
             'tenant_id' => Tenant::factory(),
             'user_id' => User::factory(),
             'title' => fake()->sentence(4),
-            'description' => fake()->optional()->paragraph(),
+            'description' => fake()->optional()->sentence(),
             'status' => 'draft',
-            'settings' => [
-                'time_limit' => null,
-                'presentation_mode' => 'per_page',
-                'items_per_step' => null,
-                'allow_back_navigation' => true,
-                'shuffle_pages' => false,
-                'shuffle_items' => false,
-            ],
         ];
     }
 
     public function published(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn () => [
             'status' => 'published',
         ]);
     }

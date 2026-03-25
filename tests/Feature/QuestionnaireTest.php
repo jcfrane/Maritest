@@ -20,9 +20,9 @@ function createLandlordWithTenant(): array
 // ── Model & Relationship Tests ──────────────────────────────────────
 
 test('questionnaire has pages relationship', function () {
-    [$user] = createLandlordWithTenant();
+    [$user, $tenant] = createLandlordWithTenant();
 
-    $questionnaire = Questionnaire::factory()->for($user)->create();
+    $questionnaire = Questionnaire::factory()->for($tenant)->for($user)->create();
     $page = QuestionnairePage::factory()
         ->for($questionnaire)
         ->create(['order' => 0]);
@@ -32,9 +32,9 @@ test('questionnaire has pages relationship', function () {
 });
 
 test('questionnaire page has items relationship', function () {
-    [$user] = createLandlordWithTenant();
+    [$user, $tenant] = createLandlordWithTenant();
 
-    $questionnaire = Questionnaire::factory()->for($user)->create();
+    $questionnaire = Questionnaire::factory()->for($tenant)->for($user)->create();
     $page = QuestionnairePage::factory()->for($questionnaire)->create();
     $item = QuestionnaireItem::factory()->for($page, 'page')->create();
 
@@ -43,9 +43,9 @@ test('questionnaire page has items relationship', function () {
 });
 
 test('questionnaire item has choices relationship', function () {
-    [$user] = createLandlordWithTenant();
+    [$user, $tenant] = createLandlordWithTenant();
 
-    $questionnaire = Questionnaire::factory()->for($user)->create();
+    $questionnaire = Questionnaire::factory()->for($tenant)->for($user)->create();
     $page = QuestionnairePage::factory()->for($questionnaire)->create();
     $item = QuestionnaireItem::factory()->for($page, 'page')->create();
     $choice = QuestionnaireChoice::factory()->for($item, 'item')->create();
@@ -55,9 +55,9 @@ test('questionnaire item has choices relationship', function () {
 });
 
 test('questionnaire item knows if it is an instruction or question', function () {
-    [$user] = createLandlordWithTenant();
+    [$user, $tenant] = createLandlordWithTenant();
 
-    $questionnaire = Questionnaire::factory()->for($user)->create();
+    $questionnaire = Questionnaire::factory()->for($tenant)->for($user)->create();
     $page = QuestionnairePage::factory()->for($questionnaire)->create();
     $instruction = QuestionnaireItem::factory()->for($page, 'page')->instruction()->create();
     $question = QuestionnaireItem::factory()->for($page, 'page')->singleChoice()->create();
@@ -69,10 +69,10 @@ test('questionnaire item knows if it is an instruction or question', function ()
 });
 
 test('questionnaire can check draft and published status', function () {
-    [$user] = createLandlordWithTenant();
+    [$user, $tenant] = createLandlordWithTenant();
 
-    $draft = Questionnaire::factory()->for($user)->create(['status' => 'draft']);
-    $published = Questionnaire::factory()->for($user)->create(['status' => 'published']);
+    $draft = Questionnaire::factory()->for($tenant)->for($user)->create(['status' => 'draft']);
+    $published = Questionnaire::factory()->for($tenant)->for($user)->create(['status' => 'published']);
 
     expect($draft->isDraft())->toBeTrue()
         ->and($draft->isPublished())->toBeFalse()
@@ -85,7 +85,13 @@ test('questionnaire can check draft and published status', function () {
 test('landlord can view questionnaires index', function () {
     [$user, $tenant] = createLandlordWithTenant();
 
-    Questionnaire::factory()->for($user)->count(3)->create();
+    Questionnaire::factory()->for($tenant)->for($user)->count(3)->create();
+
+    $otherTenant = Tenant::factory()->create();
+    $otherUser = User::factory()->landlord()->create();
+    $otherTenant->users()->attach($otherUser);
+
+    Questionnaire::factory()->for($otherTenant)->for($otherUser)->create();
 
     $this->actingAs($user)
         ->get(route('tenant.questionnaires.index', $tenant))
@@ -162,7 +168,7 @@ test('landlord can store a questionnaire with pages and items', function () {
 test('landlord can update a questionnaire', function () {
     [$user, $tenant] = createLandlordWithTenant();
 
-    $questionnaire = Questionnaire::factory()->for($user)->create(['title' => 'Old Title']);
+    $questionnaire = Questionnaire::factory()->for($tenant)->for($user)->create(['title' => 'Old Title']);
     $page = QuestionnairePage::factory()->for($questionnaire)->create();
 
     $this->actingAs($user)
@@ -193,7 +199,7 @@ test('landlord can update a questionnaire', function () {
 test('landlord can delete a questionnaire', function () {
     [$user, $tenant] = createLandlordWithTenant();
 
-    $questionnaire = Questionnaire::factory()->for($user)->create();
+    $questionnaire = Questionnaire::factory()->for($tenant)->for($user)->create();
 
     $this->actingAs($user)
         ->delete(route('tenant.questionnaires.destroy', [$tenant, $questionnaire]))
@@ -205,7 +211,7 @@ test('landlord can delete a questionnaire', function () {
 test('landlord can view edit questionnaire page', function () {
     [$user, $tenant] = createLandlordWithTenant();
 
-    $questionnaire = Questionnaire::factory()->for($user)->create();
+    $questionnaire = Questionnaire::factory()->for($tenant)->for($user)->create();
     $page = QuestionnairePage::factory()
         ->for($questionnaire)
         ->create(['title' => 'Page 1']);
@@ -310,4 +316,21 @@ test('unauthenticated user cannot access questionnaires', function () {
 
     $this->get(route('tenant.questionnaires.index', $tenant))
         ->assertRedirect(route('login'));
+});
+
+test('questionnaire routes are scoped to the current tenant', function () {
+    [$user, $tenant] = createLandlordWithTenant();
+
+    $otherTenant = Tenant::factory()->create();
+    $otherUser = User::factory()->landlord()->create();
+    $otherTenant->users()->attach($otherUser);
+
+    $questionnaire = Questionnaire::factory()
+        ->for($otherTenant)
+        ->for($otherUser)
+        ->create();
+
+    $this->actingAs($user)
+        ->get(route('tenant.questionnaires.edit', [$tenant, $questionnaire]))
+        ->assertNotFound();
 });

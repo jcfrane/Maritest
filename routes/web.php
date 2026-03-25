@@ -31,6 +31,7 @@ Route::middleware(['auth', 'verified', 'tenant.redirect'])
 Route::middleware(['auth', 'verified', 'tenant'])
     ->prefix('t/{tenant}')
     ->name('tenant.')
+    ->scopeBindings()
     ->group(base_path('routes/tenant.php'));
 
 require __DIR__.'/settings.php';

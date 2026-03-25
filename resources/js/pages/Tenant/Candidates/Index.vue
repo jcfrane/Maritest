@@ -2,6 +2,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Search, SlidersHorizontal, UserPlus } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import PagePanel from '@/components/page/PagePanel.vue';
 import PageShell from '@/components/page/PageShell.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -54,6 +55,8 @@ const search = ref(
         'filter[search]',
     ) ?? '',
 );
+const selectedCandidate = ref<User | null>(null);
+const isDeletingCandidate = ref(false);
 
 function applyFilters(): void {
     router.get(
@@ -63,12 +66,37 @@ function applyFilters(): void {
     );
 }
 
-function deleteCandidate(candidateId: number): void {
-    if (confirm('Are you sure you want to remove this candidate?')) {
-        router.delete(
-            candidatesDestroy.url({ tenant: slug.value, candidate: candidateId }),
-        );
+function promptDeleteCandidate(candidate: User): void {
+    selectedCandidate.value = candidate;
+}
+
+function setDeleteCandidateDialogOpen(open: boolean): void {
+    if (!open) {
+        selectedCandidate.value = null;
     }
+}
+
+function deleteCandidate(): void {
+    if (!selectedCandidate.value) {
+        return;
+    }
+
+    isDeletingCandidate.value = true;
+
+    router.delete(
+        candidatesDestroy.url({
+            tenant: slug.value,
+            candidate: selectedCandidate.value.id,
+        }),
+        {
+            onSuccess: () => {
+                selectedCandidate.value = null;
+            },
+            onFinish: () => {
+                isDeletingCandidate.value = false;
+            },
+        },
+    );
 }
 
 function formatDate(date: string): string {
@@ -185,7 +213,9 @@ function formatDate(date: string): string {
                             </TableCell>
 
                             <TableCell class="text-muted-foreground">
-                                <span class="break-all">{{ candidate.email }}</span>
+                                <span class="break-all">{{
+                                    candidate.email
+                                }}</span>
                             </TableCell>
 
                             <TableCell class="text-muted-foreground">
@@ -213,7 +243,10 @@ function formatDate(date: string): string {
                                         variant="ghost"
                                         size="sm"
                                         class="text-destructive hover:text-destructive"
-                                        @click="deleteCandidate(candidate.id)"
+                                        :disabled="isDeletingCandidate"
+                                        @click="
+                                            promptDeleteCandidate(candidate)
+                                        "
                                     >
                                         Remove
                                     </Button>
@@ -234,7 +267,8 @@ function formatDate(date: string): string {
                                         No candidates found
                                     </p>
                                     <p class="text-sm text-muted-foreground">
-                                        Add a candidate to start managing their account separately.
+                                        Add a candidate to start managing their
+                                        account separately.
                                     </p>
                                 </div>
                             </TableCell>
@@ -248,9 +282,7 @@ function formatDate(date: string): string {
                     >
                         <p class="text-sm text-muted-foreground">
                             Showing page {{ candidates.current_page }} of
-                            {{ candidates.last_page }} ({{
-                                candidates.total
-                            }}
+                            {{ candidates.last_page }} ({{ candidates.total }}
                             total)
                         </p>
 
@@ -290,6 +322,21 @@ function formatDate(date: string): string {
                     </div>
                 </template>
             </PagePanel>
+
+            <ConfirmDialog
+                :open="selectedCandidate !== null"
+                title="Remove candidate?"
+                :description="
+                    selectedCandidate
+                        ? `${selectedCandidate.name} will be removed from ${tenant?.name ?? 'this tenant'}. Their account record will remain in the system.`
+                        : ''
+                "
+                confirm-label="Remove candidate"
+                pending-label="Removing candidate..."
+                :pending="isDeletingCandidate"
+                @update:open="setDeleteCandidateDialogOpen"
+                @confirm="deleteCandidate"
+            />
         </PageShell>
     </TenantLayout>
 </template>

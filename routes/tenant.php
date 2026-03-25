@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Tenant\CandidateController;
+use App\Http\Controllers\Tenant\ExamSetController;
 use App\Http\Controllers\Tenant\ImageUploadController;
 use App\Http\Controllers\Tenant\QuestionnaireController;
 use App\Http\Controllers\Tenant\UserController;
@@ -18,4 +19,7 @@ Route::post('images', [ImageUploadController::class, 'store'])
     ->name('images.store');
 
 Route::resource('questionnaires', QuestionnaireController::class)
+    ->except(['show']);
+
+Route::resource('exam-sets', ExamSetController::class)
     ->except(['show']);

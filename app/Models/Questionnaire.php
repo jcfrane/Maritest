@@ -2,20 +2,23 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToTenant;
 use Database\Factories\QuestionnaireFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Questionnaire extends Model
 {
     /** @use HasFactory<QuestionnaireFactory> */
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
     /** @var list<string> */
     protected $fillable = [
+        'tenant_id',
         'user_id',
         'title',
         'description',
@@ -39,6 +42,16 @@ class Questionnaire extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return BelongsToMany<ExamSet, $this>
+     */
+    public function examSets(): BelongsToMany
+    {
+        return $this->belongsToMany(ExamSet::class)
+            ->withPivot('position')
+            ->orderByPivot('position');
     }
 
     /**
